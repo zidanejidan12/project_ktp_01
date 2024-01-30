@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   String? _selectedDistrict;
   String? _selectedOccupation;
   String? _selectedEducation;
+  String? _selectedProvinceId;
 
   @override
   void dispose() {
@@ -86,16 +87,26 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
-  Future<List<String>> fetchRegencies() async {
-    final response = await rootBundle.loadString('/regencies.json');
+  Future<List<Map<String, dynamic>>> fetchProvinces() async {
+    final response = await rootBundle.loadString('provinces.json');
     final List<dynamic> data = jsonDecode(response);
-    return data.map<String>((item) => item['name'] as String).toList();
+    return data
+        .map<Map<String, dynamic>>((item) => {
+              'name': item['name'],
+              'id': item['id'], // Assume your province JSON has an 'id' field
+            })
+        .toList();
   }
 
-  Future<List<String>> fetchProvinces() async {
-    final response = await rootBundle.loadString('/provinces.json');
+  Future<List<Map<String, dynamic>>> fetchRegencies() async {
+    final response = await rootBundle.loadString('regencies.json');
     final List<dynamic> data = jsonDecode(response);
-    return data.map<String>((item) => item['name'] as String).toList();
+    return data
+        .map<Map<String, dynamic>>((item) => {
+              'name': item['name'],
+              'provinceId': item['province_id'],
+            })
+        .toList();
   }
 
   @override
@@ -131,23 +142,26 @@ class _HomePageState extends State<HomePage> {
                     return null;
                   },
                 ),
-                FutureBuilder<List<String>>(
+                FutureBuilder<List<Map<String, dynamic>>>(
                   future: fetchProvinces(),
                   builder: (BuildContext context,
-                      AsyncSnapshot<List<String>> snapshot) {
+                      AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                     if (snapshot.hasData) {
                       return DropdownButtonFormField<String>(
                         value: _selectedProvince,
                         onChanged: (value) {
                           setState(() {
-                            _selectedProvince = value!;
+                            _selectedProvince = value;
+                            _selectedProvinceId = snapshot.data!.firstWhere(
+                              (province) => province['name'] == value,
+                            )['id'];
                           });
                         },
-                        items: snapshot.data!
-                            .map<DropdownMenuItem<String>>((String value) {
+                        items: snapshot.data!.map<DropdownMenuItem<String>>(
+                            (Map<String, dynamic> value) {
                           return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
+                            value: value['name'],
+                            child: Text(value['name']),
                           );
                         }).toList(),
                         decoration:
@@ -166,11 +180,16 @@ class _HomePageState extends State<HomePage> {
                     return const CircularProgressIndicator();
                   },
                 ),
-                FutureBuilder<List<String>>(
+                FutureBuilder<List<Map<String, dynamic>>>(
                   future: fetchRegencies(),
                   builder: (BuildContext context,
-                      AsyncSnapshot<List<String>> snapshot) {
+                      AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                     if (snapshot.hasData) {
+                      final regencies = snapshot.data!
+                          .where((regency) =>
+                              regency['provinceId'] == _selectedProvinceId)
+                          .map<String>((regency) => regency['name'])
+                          .toList();
                       return DropdownButtonFormField<String>(
                         value: _selectedDistrict,
                         onChanged: (value) {
@@ -178,7 +197,7 @@ class _HomePageState extends State<HomePage> {
                             _selectedDistrict = value!;
                           });
                         },
-                        items: snapshot.data!
+                        items: regencies
                             .map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
