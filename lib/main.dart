@@ -64,6 +64,11 @@ class _HomePageState extends State<HomePage> {
       usersBox.add(user);
       _nameController.clear();
       _birthPlaceController.clear();
+      _selectedProvince = null;
+      _selectedDistrict = null;
+      _selectedOccupation = null;
+      _selectedEducation = null;
+      _selectedProvinceId = null;
       setState(() {});
     }
   }
@@ -76,13 +81,14 @@ class _HomePageState extends State<HomePage> {
 
   void _editUser(int index) {
     final usersBox = Hive.box('users');
-    final user = usersBox.getAt(index) as Map<String, dynamic>;
-    _nameController.text = user['name'];
-    _birthPlaceController.text = user['birthPlace'];
-    _selectedProvince = user['province'];
-    _selectedDistrict = user['district'];
-    _selectedOccupation = user['occupation'];
-    _selectedEducation = user['education'];
+    final user = usersBox.getAt(index);
+    Map<String, dynamic> userMap = Map<String, dynamic>.from(user as Map);
+    _nameController.text = userMap['name'];
+    _birthPlaceController.text = userMap['birthPlace'];
+    _selectedProvince = userMap['province'];
+    _selectedDistrict = userMap['district'];
+    _selectedOccupation = userMap['occupation'];
+    _selectedEducation = userMap['education'];
     usersBox.deleteAt(index);
     setState(() {});
   }
@@ -317,7 +323,9 @@ class _HomePageState extends State<HomePage> {
                 return ListView.builder(
                   itemCount: box.length,
                   itemBuilder: (context, index) {
-                    final user = box.getAt(index) as Map<String, dynamic>;
+                    final user = box.getAt(index);
+                    Map<String, dynamic> userMap =
+                        Map<String, dynamic>.from(user as Map);
                     return ListTile(
                       leading: IconButton(
                         icon: const Icon(Icons.edit),
@@ -325,7 +333,7 @@ class _HomePageState extends State<HomePage> {
                           _editUser(index);
                         },
                       ),
-                      title: Text(user['name']),
+                      title: Text(userMap['name']),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
                         onPressed: () {
