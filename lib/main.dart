@@ -73,8 +73,27 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
+  void _editUser(int index) {
+    final usersBox = Hive.box('users');
+    final user = usersBox.getAt(index) as Map<String, dynamic>;
+    _nameController.text = user['name'];
+    _birthPlaceController.text = user['birthPlace'];
+    _selectedProvince = user['province'];
+    _selectedDistrict = user['district'];
+    _selectedOccupation = user['occupation'];
+    _selectedEducation = user['education'];
+    usersBox.deleteAt(index);
+    setState(() {});
+  }
+
   Future<List<String>> fetchRegencies() async {
-    final response = await rootBundle.loadString('/asset/regencies.json');
+    final response = await rootBundle.loadString('/regencies.json');
+    final List<dynamic> data = jsonDecode(response);
+    return data.map<String>((item) => item['name'] as String).toList();
+  }
+
+  Future<List<String>> fetchProvinces() async {
+    final response = await rootBundle.loadString('/provinces.json');
     final List<dynamic> data = jsonDecode(response);
     return data.map<String>((item) => item['name'] as String).toList();
   }
@@ -112,48 +131,74 @@ class _HomePageState extends State<HomePage> {
                     return null;
                   },
                 ),
-                DropdownButtonFormField<String>(
-                  value: _selectedProvince,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedProvince = value!;
-                    });
-                  },
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'ACEH',
-                      child: Text('ACEH'),
-                    ),
-                    // Add other provinces here
-                  ],
-                  decoration: const InputDecoration(labelText: 'Provinsi'),
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Provinsi harus dipilih';
+                FutureBuilder<List<String>>(
+                  future: fetchProvinces(),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<List<String>> snapshot) {
+                    if (snapshot.hasData) {
+                      return DropdownButtonFormField<String>(
+                        value: _selectedProvince,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedProvince = value!;
+                          });
+                        },
+                        items: snapshot.data!
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        decoration:
+                            const InputDecoration(labelText: 'Provinsi'),
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Provinsi harus dipilih';
+                          }
+                          return null;
+                        },
+                      );
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
                     }
-                    return null;
+                    // By default, show a loading spinner.
+                    return const CircularProgressIndicator();
                   },
                 ),
-                DropdownButtonFormField<String>(
-                  value: _selectedDistrict,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedDistrict = value!;
-                    });
-                  },
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'KABUPATEN SIMEULUE',
-                      child: Text('KABUPATEN SIMEULUE'),
-                    ),
-                    // Add other districts here
-                  ],
-                  decoration: const InputDecoration(labelText: 'Kabupaten'),
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Kabupaten harus dipilih';
+                FutureBuilder<List<String>>(
+                  future: fetchRegencies(),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<List<String>> snapshot) {
+                    if (snapshot.hasData) {
+                      return DropdownButtonFormField<String>(
+                        value: _selectedDistrict,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedDistrict = value!;
+                          });
+                        },
+                        items: snapshot.data!
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        decoration:
+                            const InputDecoration(labelText: 'Kabupaten'),
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Kabupaten harus dipilih';
+                          }
+                          return null;
+                        },
+                      );
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
                     }
-                    return null;
+                    // By default, show a loading spinner.
+                    return const CircularProgressIndicator();
                   },
                 ),
                 DropdownButtonFormField<String>(
@@ -255,6 +300,12 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     final user = box.getAt(index) as Map<String, dynamic>;
                     return ListTile(
+                      leading: IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          _editUser(index);
+                        },
+                      ),
                       title: Text(user['name']),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
